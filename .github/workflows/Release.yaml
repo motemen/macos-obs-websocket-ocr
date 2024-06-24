@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build executable for release
+        run: swift build --configuration release --arch arm64 --arch x86_64
+      - name: Compress archive
+        run: tar xvzf obs-websocket-ocr.tar.gz -C .build/apple/Products/Release obs-websocket-ocr
+      - name: Release
+        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0
+        with:
+          files: obs-websocket-ocr.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
