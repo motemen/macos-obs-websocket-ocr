@@ -169,6 +169,6 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
 
 func routes(_ app: Application) throws {
     app.webSocket { req, client in
-        runOBSWebSocketProxySession(client: client, upstreamURL: "ws://localhost:4455", on: req.eventLoop, logger: app.logger)
+        runOBSWebSocketProxySession(client: client, upstreamURL: app.upstreamURL, on: req.eventLoop, logger: app.logger)
     }
 }

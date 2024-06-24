@@ -3,6 +3,21 @@ import Logging
 import NIOCore
 import NIOPosix
 
+struct UpstreamURLKey: StorageKey {
+    typealias Value = String
+}
+
+extension Application {
+    var upstreamURL: String {
+        get {
+            return self.storage[UpstreamURLKey.self]  ?? "ws://localhost:4455"
+        }
+        set {
+            self.storage[UpstreamURLKey.self] = newValue
+        }
+    }
+}
+
 struct CustomServeCommand: AsyncCommand {
     var help: String {
         return "Starts obs-websocket-ocr proxy server."
@@ -20,15 +35,17 @@ struct CustomServeCommand: AsyncCommand {
         
         @Option(name: "port", short: "p", help: "Set the port the server will run on.")
         var port: Int?
-        
-        @Option(name: "bind", short: "b", help: "Convenience for setting hostname and port together.")
-        var bind: String?
 
         @Option(name: "upstream-url", short: "u", help: "The URL of the upstream server.")
         var upstreamURL: String?
     }
 
     func run(using context: CommandContext, signature: Signature) async throws {
+        if let upstreamURL = signature.upstreamURL {
+            context.application.upstreamURL = upstreamURL
+        }
+        context.application.logger.info("Upstream URL: \(context.application.upstreamURL)")
+
         let arguments = [
             context.input.executable,
             "--hostname", signature.hostname ?? "localhost",
