@@ -17,7 +17,7 @@ jobs:
       - name: Build executable for release
         run: swift build --configuration release --arch arm64 --arch x86_64
       - name: Compress archive
-        run: tar xvzf obs-websocket-ocr.tar.gz -C .build/apple/Products/Release obs-websocket-ocr
+        run: tar cvzf obs-websocket-ocr.tar.gz -C .build/apple/Products/Release obs-websocket-ocr
       - name: Release
         uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0
         with:
