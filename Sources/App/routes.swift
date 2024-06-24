@@ -4,7 +4,7 @@ import Vision
 import Vapor
 import struct os.OSAllocatedUnfairLock
 
-func decodeMessagePayload(expectedOpCode: Int, expectedRequestType: String, data: Data, logger: Logger) -> (Any, [String: Any])? {
+func decodeMessagePayload(expectedOpCode: Int, expectedRequestType: String, data: Data, logger: Logger) -> (OBSWebSocketPayloadRequestId, [String: Any])? {
     guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
         logger.warning("Failed to parse JSON as dictionary: \(data)")
         return nil
@@ -28,12 +28,37 @@ func decodeMessagePayload(expectedOpCode: Int, expectedRequestType: String, data
         return nil
     }
 
-    guard let requestId = payload["requestId"] else {
+    guard let requestId = OBSWebSocketPayloadRequestId.fromValue(payload["requestId"]) else {
         logger.warning("Failed to get requestId: \(payload)")
         return nil
     }
 
     return (requestId, payload)
+}
+
+enum OBSWebSocketPayloadRequestId: Sendable {
+    case string(String)
+    // Some implementations use integer as requestId
+    case int(Int)
+
+    static func fromValue(_ value: Any?) -> OBSWebSocketPayloadRequestId? {
+        if let value = value as? String {
+            return .string(value)
+        } else if let value = value as? Int {
+            return .int(value)
+        } else {
+            return nil
+        }
+    }
+
+    var value: Any {
+        switch self {
+        case .string(let value):
+            return value
+        case .int(let value):
+            return value
+        }
+    }
 }
 
 func decodeGetSourceScreenshotResponseImageData(data: Data, logger: Logger) -> String? {
@@ -53,7 +78,9 @@ func decodeGetSourceScreenshotResponseImageData(data: Data, logger: Logger) -> S
 // - Proxy WebSocket messages between client and upstream server
 // - On GetSourceScreenshot response, save latest image data
 // - On __GetTextFromLastScreenshot request, which is this proxy's custom request, recognize text from the latest image data
-func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on eventLoopGroup: EventLoopGroup, logger: Logger) {
+func startOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on eventLoopGroup: EventLoopGroup, logger: Logger, id: String) {
+    logger.info("[\(id)] Start session")
+
     // maxFrameSize defaults to 1<<14, which seems to be too small for OBS WebSocket message,
     // especially for GetSourceScreenshot response.
     // > [obs-websocket] [WebSocketServer::onClose] WebSocket client `[::1]:51344` has disconnected with code `1006` and reason: Underlying Transport Error
@@ -72,9 +99,9 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
                             "op": 7,
                             "d": [
                                 "requestType": "__GetTextFromLastScreenshot",
-                                "requestId": requestId,
+                                "requestId": requestId.value,
                                 "requestStatus": ["result": true, "code": 100],
-                                "responseData": responseData as Any
+                                "responseData": responseData,
                             ]
                         ] as [String: Any]
                         client.send(try! JSONSerialization.data(withJSONObject: responseJSON))
@@ -85,7 +112,7 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
                         return
                     }
 
-                    let base64Data = Data(base64Encoded: String(imageData.dropFirst("data:image/png;base64,".count)))
+                    let base64Data = Data(base64Encoded: String(imageData.trimmingPrefix("data:image/png;base64,")))
                     guard let dataProvider = CGDataProvider(data: base64Data! as CFData) else {
                         logger.warning("Failed to create CGDataProvider")
                         return
@@ -104,8 +131,8 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
 
                         for observation in observations {
                             if let topCandidate = observation.topCandidates(1).first {
-                                logger.info("Recognized text: \(topCandidate.string)")
-                                logger.info("  at \(observation.boundingBox)")
+                                logger.debug("Recognized text: \(topCandidate.string)")
+                                logger.debug("  at \(observation.boundingBox)")
                                 textResults.append([
                                     "text": topCandidate.string,
                                     "bounding_box": [
@@ -149,18 +176,18 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
         client.onClose.whenComplete { result in
             switch result {
             case .success:
-                logger.info("Client closed")
+                logger.info("[\(id)] Client closed")
             case .failure(let error):
-                logger.error("Client closed with error: \(error)")
+                logger.error("[\(id)] Client closed with error: \(error)")
             }
             _ = upstream.close()
         }
         upstream.onClose.whenComplete { result in
             switch result {
             case .success:
-                logger.info("Upstream closed")
+                logger.info("[\(id)] Upstream closed")
             case .failure(let error):
-                logger.error("Upstream closed with error: \(error)")
+                logger.error("[\(id)] Upstream closed with error: \(error)")
             }
             _ = client.close()
         }
@@ -169,6 +196,6 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
 
 func routes(_ app: Application) throws {
     app.webSocket { req, client in
-        runOBSWebSocketProxySession(client: client, upstreamURL: app.upstreamURL, on: req.eventLoop, logger: app.logger)
+        startOBSWebSocketProxySession(client: client, upstreamURL: app.upstreamURL, on: req.eventLoop, logger: app.logger, id: req.id)
     }
 }
