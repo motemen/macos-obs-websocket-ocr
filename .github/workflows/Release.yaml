@@ -1,5 +1,8 @@
 name: Release
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -11,6 +14,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
       - uses: swift-actions/setup-swift@a6ceb06dd94080669443d60dc40db698154378dc
         with:
           swift-version: "5.10"
