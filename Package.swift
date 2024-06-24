@@ -14,19 +14,11 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "App",
+            name: "obs-websocket-ocr",
             dependencies: [
                 .product(name: "Vapor", package: "vapor"),
                 .product(name: "NIOCore", package: "swift-nio"),
                 .product(name: "NIOPosix", package: "swift-nio"),
-            ],
-            swiftSettings: swiftSettings
-        ),
-        .testTarget(
-            name: "AppTests",
-            dependencies: [
-                .target(name: "App"),
-                .product(name: "XCTVapor", package: "vapor"),
             ],
             swiftSettings: swiftSettings
         )

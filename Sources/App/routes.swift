@@ -96,8 +96,6 @@ func runOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on even
                         return
                     }
 
-                    logger.debug("CGImage: \(cgImage)")
-
                     var textResults = []
 
                     let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
