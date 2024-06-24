@@ -11,6 +11,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - uses: swift-actions/setup-swift@a6ceb06dd94080669443d60dc40db698154378dc
+        with:
+          swift-version: "5.10"
       - name: Build executable for release
         run: swift build --configuration release --arch arm64 --arch x86_64
       - name: Compress archive
