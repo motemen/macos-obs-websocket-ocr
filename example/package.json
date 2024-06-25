@@ -1,0 +1,22 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx tsx --env-file=.env main.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "object.groupby": "^1.0.3",
+    "obs-websocket-js": "^5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "@types/object.groupby": "^1.0.4",
+    "tsx": "^4.15.7"
+  }
+}
