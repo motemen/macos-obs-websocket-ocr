@@ -195,7 +195,9 @@ func startOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on ev
 }
 
 func routes(_ app: Application) throws {
-    app.webSocket { req, client in
+    app.webSocket(shouldUpgrade: { req in
+        req.eventLoop.makeSucceededFuture(["Sec-WebSocket-Protocol":"obswebsocket.json"])
+    }) { req, client in
         startOBSWebSocketProxySession(client: client, upstreamURL: app.upstreamURL, on: req.eventLoop, logger: app.logger, id: req.id)
     }
 }
