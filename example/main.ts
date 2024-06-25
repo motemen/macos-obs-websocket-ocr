@@ -1,6 +1,10 @@
 import OBSWebSocket from "obs-websocket-js";
 import groupBy from "object.groupby";
 
+// An example of obs-websocket-ocr client
+// which extracts text from the "video" source in OBS
+// Especially indented for Pokémon SV battle messages
+
 interface __GetTextFromLastScreenshotResponse {
   text_results: {
     text: string;
@@ -17,7 +21,7 @@ async function main() {
   const obs = new OBSWebSocket();
   await obs.connect("ws://localhost:4456", process.env.OBS_WEBSOCKET_PASSWORD);
 
-  // 1秒ごとにスクリーンショットを撮って、OCRする
+  // Take screenshot and get text from it for every second
   while (true) {
     await obs.call("GetSourceScreenshot", {
       sourceName: "video",
