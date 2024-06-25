@@ -85,7 +85,7 @@ func startOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on ev
     // especially for GetSourceScreenshot response.
     // > [obs-websocket] [WebSocketServer::onClose] WebSocket client `[::1]:51344` has disconnected with code `1006` and reason: Underlying Transport Error
     let config = WebSocketClient.Configuration.init(tlsConfiguration: nil, maxFrameSize: Int(UInt32.max))
-    _ = WebSocket.connect(to: upstreamURL, configuration: config, on: eventLoopGroup) { upstream in
+    WebSocket.connect(to: upstreamURL, configuration: config, on: eventLoopGroup) { upstream in
         let latestImageData = OSAllocatedUnfairLock(initialState: Optional<String>.none)
 
         client.onText { ws, text in
@@ -191,6 +191,9 @@ func startOBSWebSocketProxySession(client: WebSocket, upstreamURL: String, on ev
             }
             _ = client.close()
         }
+    }.whenFailure { error in
+        logger.error("[\(id)] Failed to connect to upstream: \(error)")
+        _ = client.close()
     }
 }
 
