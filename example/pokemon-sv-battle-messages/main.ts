@@ -1,5 +1,6 @@
 import OBSWebSocket from "obs-websocket-js";
 import groupBy from "object.groupby";
+import { parseArgs } from "node:util";
 
 // An example of obs-websocket-ocr client
 // which extracts text from the "video" source in OBS
@@ -18,13 +19,34 @@ interface __GetTextFromLastScreenshotResponse {
 }
 
 async function main() {
+  const {
+    values: { source, help },
+  } = parseArgs({
+    options: {
+      source: {
+        type: "string",
+        description: "Video Source name in OBS",
+      },
+      help: {
+        type: "boolean",
+        short: "h",
+        description: "Show this help message",
+      },
+    },
+  });
+
+  if (help || !source) {
+    console.log("Usage: tsx main.ts --source <sourceName>");
+    return;
+  }
+
   const obs = new OBSWebSocket();
   await obs.connect("ws://localhost:4456", process.env.OBS_WEBSOCKET_PASSWORD);
 
   // Take screenshot and get text from it for every second
   while (true) {
     await obs.call("GetSourceScreenshot", {
-      sourceName: "video",
+      sourceName: source,
       imageFormat: "png",
     });
     const response: __GetTextFromLastScreenshotResponse = await obs.call(
